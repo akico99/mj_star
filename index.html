@@ -885,8 +885,8 @@ function calculatePrice(roomKey, date) {
                 const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                 
                 // 6월 11일 이전이나 9월 30일 이후는 제외
-                const startDate = new Date(2025, 8, 1);
-                const endDate = new Date(2025, 11, 31);
+                const startDate = new Date(2025, 7, 1);
+                const endDate = new Date(2025, 10, 30);
                 
                 if (currentDate < startDate || currentDate > endDate) {
                     html += '<div class="calendar-day other-month">';
