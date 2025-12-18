@@ -89,6 +89,14 @@
     <!-- 견적내기 -->
     <section id="viewQuote" class="grid">
       <div class="card">
+        <h2>0) 매장 선택</h2>
+        <div class="seg" id="shopSeg">
+        <label><input type="radio" name="shop" value="choice" checked> 초이스</label>
+        <label><input type="radio" name="shop" value="sky"> 스카이</label>
+        <label><input type="radio" name="shop" value="national"> 국대</label>
+        </div>
+
+        <div style="height:14px"></div>
         <h2>1) 이용일 / 인원</h2>
         <div class="row">
           <div class="field">
@@ -186,7 +194,7 @@
           <div class="field">
             <div class="step">
               <div class="left">
-                <div class="name">고급의류</div>
+                <div class="name" id="clothHighLabel">고급의류</div>
                 <div class="hint">15,000원 / 1인</div>
               </div>
               <div class="ctrl">
@@ -447,25 +455,42 @@
     // 가격표
     // -------------------------
     const PRICES = {
-      equipment: 15000,
-      skiate: 20000,
-      clothHigh: 15000,
-      clothPremium: 20000,
-      pad: 5000,
-      helmet: 10000,
-      helmetSet: 15000,
-      lift: {
-        weekday: {
-          "3": { adult: 44000, child: 35000 },
-          "4": { adult: 51000, child: 41000 },
-          "6": { adult: 58000, child: 47000 },
+        common: {
+            equipment: 15000,
+            skiate: 20000,
+            pad: 5000,
+            helmet: 10000,
+            helmetSet: 15000,
+            lift: {
+            weekday: {
+                "3": { adult: 44000, child: 35000 },
+                "4": { adult: 51000, child: 41000 },
+                "6": { adult: 58000, child: 47000 },
+            },
+            weekend: {
+                "3": { adult: 54000, child: 43000 },
+                "4": { adult: 61000, child: 49000 },
+                "6": { adult: 69000, child: 55000 },
+            }
+            }
         },
-        weekend: {
-          "3": { adult: 54000, child: 43000 },
-          "4": { adult: 61000, child: 49000 },
-          "6": { adult: 69000, child: 55000 },
+        shops: {
+            choice: { // 초이스
+            clothTypeLabel: "고급의류",
+            clothHigh: { weekday: 15000, weekend: 15000 },
+            clothPremium: { weekday: 20000, weekend: 20000 },
+            },
+            sky: { // 스카이
+            clothTypeLabel: "신상의류",
+            clothHigh: { weekday: 20000, weekend: 25000 },
+            clothPremium: { weekday: 25000, weekend: 30000 },
+            },
+            national: { // 국대(스카이와 동일)
+            clothTypeLabel: "신상의류",
+            clothHigh: { weekday: 20000, weekend: 25000 },
+            clothPremium: { weekday: 25000, weekend: 30000 },
+            }
         }
-      }
     };
 
     // -------------------------
@@ -590,6 +615,9 @@
       const dateInfo = getDayTypeFromDate($("q_date").value);
       const dayType = dateInfo ? dateInfo.dayType : "weekday"; // 날짜 없으면 임시 주중 기준
       const liftSel = document.querySelector('input[name="q_lift"]:checked')?.value || "none";
+      const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
+      const S = PRICES.shops[shop];
+      const C = PRICES.common;
 
       // 렌탈/옵션
       const equipment = readCount("q_equipment");
@@ -602,14 +630,14 @@
 
       // 리프트
       let liftTotal = 0;
-      if (liftSel !== "none" && PRICES.lift[dayType][liftSel]) {
-        const p = PRICES.lift[dayType][liftSel];
+      if (liftSel !== "none" && C.lift[dayType][liftSel]) {
+        const p = C.lift[dayType][liftSel];
         liftTotal = p.adult * adult + p.child * child;
       }
 
       const items = [];
       if (liftSel !== "none") {
-        const p = PRICES.lift[dayType][liftSel];
+        const p = C.lift[dayType][liftSel];
         items.push({
           key: "lift",
           label: `리프트권(${liftSel}시간 · ${dayType === "weekend" ? "주말" : "주중"})`,
@@ -623,13 +651,13 @@
         items.push({ key: label, label, amount: unit * qty, detail: `${unit.toLocaleString()}원 × ${qty}` });
       };
 
-      addLine("장비렌탈", PRICES.equipment, equipment);
-      addLine("스키에이트", PRICES.skiate, skiate);
-      addLine("고급의류", PRICES.clothHigh, clothHigh);
-      addLine("프리미엄의류", PRICES.clothPremium, clothPremium);
-      addLine("보호대", PRICES.pad, pad);
-      addLine("헬멧 또는 고글", PRICES.helmet, helmet);
-      addLine("헬멧+고글", PRICES.helmetSet, helmetSet);
+      addLine("장비렌탈", C.equipment, equipment);
+      addLine("스키에이트", C.skiate, skiate);
+      addLine(S.clothTypeLabel, S.clothHigh[dayType], clothHigh);
+      addLine("프리미엄의류", S.clothPremium[dayType], clothPremium);
+      addLine("보호대", C.pad, pad);
+      addLine("헬멧 또는 고글", C.helmet, helmet);
+      addLine("헬멧+고글", C.helmetSet, helmetSet);
 
       const total = items.reduce((s, x) => s + x.amount, 0);
 
@@ -862,6 +890,22 @@
     updateQuote();
     updateReserveOutput();
     syncDayTypePill();
+    syncClothLabel();
+    
+    function syncClothLabel() {
+        const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
+        const label = PRICES.shops[shop].clothTypeLabel;
+        const el = document.getElementById("clothHighLabel");
+        if (el) el.textContent = label;
+    }
+
+    document.querySelectorAll('input[name="shop"]').forEach(r => {
+        r.addEventListener("change", () => {
+            syncClothLabel();
+            updateQuote();
+        });
+    });
+
   </script>
 </body>
 </html>
