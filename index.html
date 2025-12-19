@@ -111,49 +111,65 @@
 
         <div style="height:10px"></div>
 
-        <div class="row">
-          <div class="field">
-            <label>대인</label>
-            <div class="step">
-              <div class="left">
-                <div class="name">대인</div>
-                <div class="hint">리프트권 대인 단가 적용</div>
-              </div>
-              <div class="ctrl">
-                <button class="btn mini" data-step="q_adult" data-delta="-1">−</button>
-                <div class="count" id="q_adult">0</div>
-                <button class="btn mini" data-step="q_adult" data-delta="1">+</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="field">
-            <label>소인</label>
-            <div class="step">
-              <div class="left">
-                <div class="name">소인</div>
-                <div class="hint">리프트권 소인 단가 적용</div>
-              </div>
-              <div class="ctrl">
-                <button class="btn mini" data-step="q_child" data-delta="-1">−</button>
-                <div class="count" id="q_child">0</div>
-                <button class="btn mini" data-step="q_child" data-delta="1">+</button>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <div style="height:12px"></div>
         <div class="pill">총 인원: <b id="q_totalPeople">0</b>명</div>
 
         <div style="height:16px"></div>
         <h2>2) 리프트권</h2>
-        <div class="seg" id="q_liftSeg">
-          <label><input type="radio" name="q_lift" value="none" checked> 없음</label>
-          <label><input type="radio" name="q_lift" value="3"> 3시간권</label>
-          <label><input type="radio" name="q_lift" value="4"> 4시간권</label>
-          <label><input type="radio" name="q_lift" value="6"> 6시간권</label>
-        </div>
+        <div class="step">
+            <div class="left">
+                <div class="name">3시간권</div>
+                <div class="hint">대인 / 소인 선택</div>
+            </div>
+            <div class="ctrl">
+                대인
+                <button class="btn mini" data-step="q_lift3_adult" data-delta="-1">−</button>
+                <div class="count" id="q_lift3_adult">0</div>
+                <button class="btn mini" data-step="q_lift3_adult" data-delta="1">+</button>
+
+                소인
+                <button class="btn mini" data-step="q_lift3_child" data-delta="-1">−</button>
+                <div class="count" id="q_lift3_child">0</div>
+                <button class="btn mini" data-step="q_lift3_child" data-delta="1">+</button>
+            </div>
+            </div>
+
+            <!-- 4시간권 -->
+            <div class="step">
+            <div class="left">
+                <div class="name">4시간권</div>
+            </div>
+            <div class="ctrl">
+                대인
+                <button class="btn mini" data-step="q_lift4_adult" data-delta="-1">−</button>
+                <div class="count" id="q_lift4_adult">0</div>
+                <button class="btn mini" data-step="q_lift4_adult" data-delta="1">+</button>
+
+                소인
+                <button class="btn mini" data-step="q_lift4_child" data-delta="-1">−</button>
+                <div class="count" id="q_lift4_child">0</div>
+                <button class="btn mini" data-step="q_lift4_child" data-delta="1">+</button>
+            </div>
+            </div>
+
+            <!-- 6시간권 -->
+            <div class="step">
+            <div class="left">
+                <div class="name">6시간권</div>
+            </div>
+            <div class="ctrl">
+                대인
+                <button class="btn mini" data-step="q_lift6_adult" data-delta="-1">−</button>
+                <div class="count" id="q_lift6_adult">0</div>
+                <button class="btn mini" data-step="q_lift6_adult" data-delta="1">+</button>
+
+                소인
+                <button class="btn mini" data-step="q_lift6_child" data-delta="-1">−</button>
+                <div class="count" id="q_lift6_child">0</div>
+                <button class="btn mini" data-step="q_lift6_child" data-delta="1">+</button>
+            </div>
+        </div>      
 
         <div style="height:16px"></div>
         <h2>3) 장비 / 의류</h2>
@@ -608,13 +624,16 @@
     });
 
     function quoteTotals() {
-      const adult = readCount("q_adult");
-      const child = readCount("q_child");
-      const totalPeople = adult + child;
+      const lift3Adult = readCount("q_lift3_adult");
+      const lift3Child = readCount("q_lift3_child");
+      const lift4Adult = readCount("q_lift4_adult");
+      const lift4Child = readCount("q_lift4_child");
+      const lift6Adult = readCount("q_lift6_adult");
+      const lift6Child = readCount("q_lift6_child");
+      const totalPeople = lift3Adult + lift3Child + lift4Adult + lift4Child + lift6Adult + lift6Child;
 
       const dateInfo = getDayTypeFromDate($("q_date").value);
       const dayType = dateInfo ? dateInfo.dayType : "weekday"; // 날짜 없으면 임시 주중 기준
-      const liftSel = document.querySelector('input[name="q_lift"]:checked')?.value || "none";
       const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
       const S = PRICES.shops[shop];
       const C = PRICES.common;
@@ -630,22 +649,52 @@
 
       // 리프트
       let liftTotal = 0;
-      if (liftSel !== "none" && C.lift[dayType][liftSel]) {
-        const p = C.lift[dayType][liftSel];
-        liftTotal = p.adult * adult + p.child * child;
-      }
+        const items = [];
 
-      const items = [];
-      if (liftSel !== "none") {
-        const p = C.lift[dayType][liftSel];
+        // 3시간권
+        if (lift3Adult + lift3Child > 0) {
+        const p = C.lift[dayType]["3"];
+        const amt = p.adult * lift3Adult + p.child * lift3Child;
+        liftTotal += amt;
         items.push({
-          key: "lift",
-          label: `리프트권(${liftSel}시간 · ${dayType === "weekend" ? "주말" : "주중"})`,
-          amount: liftTotal,
-          detail: (p ? `- 대인 ${p.adult.toLocaleString()}원 × ${adult}\n- 소인 ${p.child.toLocaleString()}원 × ${child}` : "")
+            key: "lift3",
+            label: `리프트권(3시간 · ${dayType === "weekend" ? "주말" : "주중"})`,
+            amount: amt,
+            detail:
+            `- 대인 ${p.adult.toLocaleString()}원 × ${lift3Adult}\n` +
+            `- 소인 ${p.child.toLocaleString()}원 × ${lift3Child}`
         });
-      }
+        }
 
+        // 4시간권
+        if (lift4Adult + lift4Child > 0) {
+        const p = C.lift[dayType]["4"];
+        const amt = p.adult * lift4Adult + p.child * lift4Child;
+        liftTotal += amt;
+        items.push({
+            key: "lift4",
+            label: `리프트권(4시간 · ${dayType === "weekend" ? "주말" : "주중"})`,
+            amount: amt,
+            detail:
+            `- 대인 ${p.adult.toLocaleString()}원 × ${lift4Adult}\n` +
+            `- 소인 ${p.child.toLocaleString()}원 × ${lift4Child}`
+        });
+        }
+
+        // 6시간권
+        if (lift6Adult + lift6Child > 0) {
+        const p = C.lift[dayType]["6"];
+        const amt = p.adult * lift6Adult + p.child * lift6Child;
+        liftTotal += amt;
+        items.push({
+            key: "lift6",
+            label: `리프트권(6시간 · ${dayType === "weekend" ? "주말" : "주중"})`,
+            amount: amt,
+            detail:
+            `- 대인 ${p.adult.toLocaleString()}원 × ${lift6Adult}\n` +
+            `- 소인 ${p.child.toLocaleString()}원 × ${lift6Child}`
+        });
+        }
       const addLine = (label, unit, qty) => {
         if (qty <= 0) return;
         items.push({ key: label, label, amount: unit * qty, detail: `${unit.toLocaleString()}원 × ${qty}` });
@@ -662,17 +711,23 @@
       const total = items.reduce((s, x) => s + x.amount, 0);
 
       return {
-        adult, child, totalPeople,
-        dayType, dateInfo, liftSel,
+        totalPeople,
+        dayType, dateInfo,
+        lift3Adult, lift3Child, lift4Adult, lift4Child, lift6Adult, lift6Child,
         equipment, skiate, clothHigh, clothPremium, pad, helmet, helmetSet,
         items, total
       };
     }
 
     function enforceQuoteRules() {
-      const adult = readCount("q_adult");
-      const child = readCount("q_child");
-      const totalPeople = adult + child;
+        const lift3Adult = readCount("q_lift3_adult");
+        const lift3Child = readCount("q_lift3_child");
+        const lift4Adult = readCount("q_lift4_adult");
+        const lift4Child = readCount("q_lift4_child");
+        const lift6Adult = readCount("q_lift6_adult");
+        const lift6Child = readCount("q_lift6_child");
+        const totalPeople = lift3Adult + lift3Child + lift4Adult + lift4Child + lift6Adult + lift6Child;
+        
 
       // 총인원 표시
       $("q_totalPeople").textContent = String(totalPeople);
@@ -741,8 +796,8 @@
         lines.push(`[무주스키샵 견적]`);
         if (t.dateInfo) lines.push(`이용일: ${t.dateInfo.iso} (${t.dateInfo.dow} · ${t.dateInfo.label})`);
         else lines.push(`이용일: 미선택(주중 기준 임시 계산)`);
-        lines.push(`인원: 대인 ${t.adult} / 소인 ${t.child} (총 ${t.totalPeople}명)`);
-        lines.push("");
+        lines.push( `리프트 인원: ` + `3시간(대인 ${t.lift3Adult}, 소인 ${t.lift3Child}) / ` + `4시간(대인 ${t.lift4Adult}, 소인 ${t.lift4Child}) / ` + `6시간(대인 ${t.lift6Adult}, 소인 ${t.lift6Child})` );
+        lines.push(`총 인원: ${t.totalPeople}명`);
 
         for (const it of t.items) {
           lines.push(`${it.label}: ${it.amount.toLocaleString()}원`);
@@ -767,14 +822,27 @@
     }
 
     $("btnResetQuote").addEventListener("click", () => {
-      $("q_date").value = "";
-      $("q_dateLabel").value = "";
-      ["q_adult","q_child","q_equipment","q_skiate","q_clothHigh","q_clothPremium","q_pad","q_helmet","q_helmetSet"].forEach(id => setCount(id, 0));
-      document.querySelector('input[name="q_lift"][value="none"]').checked = true;
-      $("q_warn").textContent = "";
-      syncDayTypePill();
-      updateQuote();
-      toast("초기화 완료");
+        $("q_date").value = "";
+        $("q_dateLabel").value = "";
+
+        // ✅ 리프트권 인원 초기화 (가장 중요)
+        [
+            "q_lift3_adult","q_lift3_child",
+            "q_lift4_adult","q_lift4_child",
+            "q_lift6_adult","q_lift6_child"
+        ].forEach(id => setCount(id, 0));
+
+        // 장비 / 의류 / 옵션
+        [
+            "q_equipment","q_skiate",
+            "q_clothHigh","q_clothPremium",
+            "q_pad","q_helmet","q_helmetSet"
+        ].forEach(id => setCount(id, 0));
+
+        $("q_warn").textContent = "";
+        syncDayTypePill();
+        updateQuote();
+        toast("초기화 완료");
     });
 
     $("btnCopyQuote").addEventListener("click", async () => {
@@ -859,7 +927,6 @@
       $("r_time").value = "";
       $("r_timeUnknown").checked = false;
       $("r_time").disabled = false;
-      document.querySelector('input[name="r_lift"][value="none"]').checked = true;
 
       ["r_adult","r_child","r_rental"].forEach(id => setCount(id, 0));
       $("r_totalPeople").textContent = "0";
