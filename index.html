@@ -142,7 +142,7 @@
 
 
         <div style="height:12px"></div>
-        <div class="pill">총 인원: <b id="q_totalPeople">0</b>명</div>
+        <div class="pill"> 리프트 인원: <b id="q_totalPeople">0</b>명 </div>
 
         <div style="height:16px"></div>
         <h2>2) 리프트권</h2>
@@ -208,7 +208,7 @@
             <div class="step">
               <div class="left">
                 <div class="name">장비렌탈</div>
-                <div class="hint">15,000원 / 1인</div>
+                <div class="hint" id="equipmentHint">15,000원 / 1인</div>
               </div>
               <div class="ctrl">
                 <button class="btn mini" data-step="q_equipment" data-delta="-1">−</button>
@@ -240,7 +240,7 @@
             <div class="step">
               <div class="left">
                 <div class="name" id="clothHighLabel">고급의류</div>
-                <div class="hint">15,000원 / 1인</div>
+                <div class="hint" id="clothHighHint">15,000원 / 1인</div>
               </div>
               <div class="ctrl">
                 <button class="btn mini" data-step="q_clothHigh" data-delta="-1">−</button>
@@ -254,7 +254,7 @@
             <div class="step">
               <div class="left">
                 <div class="name">프리미엄의류</div>
-                <div class="hint">20,000원 / 1인</div>
+                <div class="hint" id="clothPremiumHint">20,000원 / 1인</div>
               </div>
               <div class="ctrl">
                 <button class="btn mini" data-step="q_clothPremium" data-delta="-1">−</button>
@@ -444,7 +444,7 @@
         </div>
 
         <div style="height:12px"></div>
-        <div class="pill">총 인원: <b id="r_totalPeople">0</b>명</div>
+        <div class="pill">리프트권 인원: <b id="r_totalPeople">0</b>명</div>
 
         <div style="height:12px"></div>
 
@@ -560,8 +560,12 @@
     ]);
     function getDayTypeFromDate(isoDate) {
     if (!isoDate) return null;
-    const d = new Date(isoDate + "T00:00:00");
+
+    // ✅ 브라우저 파싱(UTC) 이슈 방지: 로컬 Date 생성
+    const [yy, mm, dd] = isoDate.split("-").map(Number);
+    const d = new Date(yy, mm - 1, dd); // 로컬 기준
     const day = d.getDay(); // 0 Sun .. 6 Sat
+
     const weekdayNames = ["일","월","화","수","목","금","토"];
 
     // 토/일 OR 지정한 날짜면 주말 요금
@@ -655,6 +659,7 @@
       const info = getDayTypeFromDate($("q_date").value);
       $("q_dateLabel").value = info ? `${info.iso} (${info.dow} · ${info.label})` : "";
       syncDayTypePill();
+      syncClothLabel();
       updateQuote();
     });
 
@@ -739,7 +744,8 @@
         items.push({ key: label, label, amount: unit * qty, detail: `${unit.toLocaleString()}원 × ${qty}` });
       };
 
-      addLine("장비렌탈", C.equipment, equipment);
+      const equipmentUnit = (shop === "sky" || shop === "national") ? 20000 : C.equipment;
+      addLine("장비렌탈", equipmentUnit, equipment);
       addLine("스키에이트", C.skiate, skiate);
       addLine(S.clothTypeLabel, S.clothHigh[dayType], clothHigh);
       addLine("프리미엄의류", S.clothPremium[dayType], clothPremium);
@@ -771,39 +777,34 @@
       // 총인원 표시
       $("q_totalPeople").textContent = String(totalPeople);
 
-      // 공통: 각 항목은 0~총인원
-      const capToPeople = (id) => setCount(id, clamp(readCount(id), 0, totalPeople));
-
-      ["q_equipment","q_skiate","q_clothHigh","q_clothPremium","q_pad","q_helmet","q_helmetSet"].forEach(capToPeople);
-
-      // 장비 중복 방지: 장비렌탈 + 스키에이트 <= 총인원
+      // 장비/의류/옵션은 리프트 인원과 무관
+      const rentalTotal =
+      readCount("q_equipment") +
+      readCount("q_skiate") +
+      readCount("q_clothHigh") +
+      readCount("q_clothPremium");
+ 
+      // 장비 중복 방지 (장비 + 스키에이트)
       let eq = readCount("q_equipment");
       let sk = readCount("q_skiate");
-      if (eq + sk > totalPeople) {
-        // 방금 변경된 쪽을 모르니, 스키에이트부터 줄이는 방식
-        const overflow = (eq + sk) - totalPeople;
-        sk = clamp(sk - overflow, 0, totalPeople);
-        setCount("q_skiate", sk);
+      if (eq + sk > rentalTotal) {
+        setCount("q_skiate", Math.max(0, rentalTotal - eq));
       }
 
-      // 의류 합계 제한: 고급 + 프리미엄 <= 총인원
+      // 의류 중복 방지 (고급 + 프리미엄)
       let ch = readCount("q_clothHigh");
       let cp = readCount("q_clothPremium");
-      if (ch + cp > totalPeople) {
-        const overflow = (ch + cp) - totalPeople;
-        cp = clamp(cp - overflow, 0, totalPeople);
-        setCount("q_clothPremium", cp);
+      if (ch + cp > rentalTotal) {
+       setCount("q_clothPremium", Math.max(0, rentalTotal - ch));
       }
 
       // 헬멧 중복 방지
       let h = readCount("q_helmet");
       let hs = readCount("q_helmetSet");
-      if (h + hs > totalPeople) {
-        const overflow = (h + hs) - totalPeople;
-        hs = clamp(hs - overflow, 0, totalPeople);
-        setCount("q_helmetSet", hs);
+      if (h + hs > rentalTotal) {
+       setCount("q_helmetSet", Math.max(0, rentalTotal - h));
       }
-
+  
       // 경고 문구
       const warns = [];
       if (!$("q_date").value) warns.push("이용일을 선택하면 주중/주말 요금이 자동 적용됩니다. (현재는 주중 기준으로 임시 계산)");
@@ -836,7 +837,7 @@
         if (t.dateInfo) lines.push(`이용일: ${t.dateInfo.iso} (${t.dateInfo.dow} · ${t.dateInfo.label})`);
         else lines.push(`이용일: 미선택(주중 기준 임시 계산)`);
         lines.push( `리프트 인원: ` + `3시간(대인 ${t.lift3Adult}, 소인 ${t.lift3Child}) / ` + `4시간(대인 ${t.lift4Adult}, 소인 ${t.lift4Child}) / ` + `6시간(대인 ${t.lift6Adult}, 소인 ${t.lift6Child})` );
-        lines.push(`총 인원: ${t.totalPeople}명`);
+        lines.push(`리프트권 인원: ${t.totalPeople}명`);
 
         for (const it of t.items) {
           lines.push(`${it.label}: ${it.amount.toLocaleString()}원`);
@@ -849,14 +850,31 @@
       }
 
       // 가격표 요약
+      const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
+      const S = PRICES.shops[shop];
+
+      const dateInfo = getDayTypeFromDate($("q_date").value);
+      const dayType = dateInfo ? dateInfo.dayType : "weekday";
+      const dayLabel = dayType === "weekend" ? "주말" : "주중";
+
       const priceRef = [];
       priceRef.push(`장비 15,000 / 스키에이트 20,000`);
-      priceRef.push(`고급의류 15,000 / 프리미엄의류 20,000`);
+      priceRef.push(
+      `${S.clothTypeLabel} (${dayLabel}) ${S.clothHigh[dayType].toLocaleString()} / ` +
+      `프리미엄의류 (${dayLabel}) ${S.clothPremium[dayType].toLocaleString()}`
+      );
       priceRef.push(`보호대 5,000 / 헬멧or고글 10,000 / 헬멧+고글 15,000`);
       priceRef.push("");
-      priceRef.push(`[3시간권] 주중 대인 44,000 / 소인 35,000 | 주말 대인 54,000 / 소인 43,000`);
-      priceRef.push(`[4시간권] 주중 대인 51,000 / 소인 41,000 | 주말 대인 61,000 / 소인 49,000`);
-      priceRef.push(`[6시간권] 주중 대인 58,000 / 소인 47,000 | 주말 대인 69,000 / 소인 55,000`);
+      priceRef.push(`<주중>`);
+      priceRef.push(`[3시간권] 대인 44,000 / 소인 35,000`);
+      priceRef.push(`[4시간권] 대인 51,000 / 소인 41,000`);
+      priceRef.push(`[6시간권] 대인 58,000 / 소인 47,000`);
+      priceRef.push("");
+      priceRef.push(`<주말>`);
+      priceRef.push(`[3시간권] 대인 54,000 / 소인 43,000`);
+      priceRef.push(`[4시간권] 대인 61,000 / 소인 49,000`);
+      priceRef.push(`[6시간권] 대인 69,000 / 소인 55,000`);
+
       $("q_priceRef").textContent = priceRef.join("\n");
     }
 
@@ -993,34 +1011,59 @@
     });
 
     // 초기 렌더
+    
     updateQuote();
     updateReserveOutput();
     syncDayTypePill();
     syncClothLabel();
-    
+
+    /** 라벨/힌트만 동기화 (이벤트 등록 금지) */
     function syncClothLabel() {
-        const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
-        const label = PRICES.shops[shop].clothTypeLabel;
-        const el = document.getElementById("clothHighLabel");
-        if (el) el.textContent = label;
+    const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
+    const S = PRICES.shops[shop];
+
+    // 라벨
+    const labelEl = document.getElementById("clothHighLabel");
+    if (labelEl) labelEl.textContent = S.clothTypeLabel;
+
+    // 날짜 기준 (주중/주말)
+    const dateInfo = getDayTypeFromDate(document.getElementById("q_date").value);
+    const dayType = dateInfo ? dateInfo.dayType : "weekday";
+
+    // 의류 가격 힌트
+    const highHint = document.getElementById("clothHighHint");
+    const premiumHint = document.getElementById("clothPremiumHint");
+
+    if (highHint) highHint.textContent = `${S.clothHigh[dayType].toLocaleString()}원 / 1인`;
+    if (premiumHint) premiumHint.textContent = `${S.clothPremium[dayType].toLocaleString()}원 / 1인`;
+
+    // 장비 가격 힌트 (스카이/국대 20,000)
+    const equipmentHint = document.getElementById("equipmentHint");
+    if (equipmentHint) {
+        const equipmentPrice = (shop === "sky" || shop === "national") ? 20000 : 15000;
+        equipmentHint.textContent = `${equipmentPrice.toLocaleString()}원 / 1인`;
+    }
     }
 
+    /** ✅ 이벤트는 “함수 밖에서” 단 1번만 등록 */
     document.querySelectorAll('input[name="shop"]').forEach(r => {
-        r.addEventListener("change", () => {
-            syncClothLabel();
-            updateQuote();
-        });
+    r.addEventListener("change", () => {
+        syncClothLabel();
+        updateQuote();
     });
+    });
+
+    // 📅 버튼 클릭 시 달력 열기
     document.addEventListener("click", (e) => {
-        const btn = e.target.closest(".dateBtn");
-        if (!btn) return;
+    const btn = e.target.closest(".dateBtn");
+    if (!btn) return;
 
-        const wrap = btn.closest(".dateWrap");
-        const input = wrap?.querySelector('input[type="date"]');
-        if (!input) return;
+    const wrap = btn.closest(".dateWrap");
+    const input = wrap?.querySelector('input[type="date"]');
+    if (!input) return;
 
-        if (input.showPicker) input.showPicker(); // 크롬/엣지
-        else input.focus(); // fallback
+    if (typeof input.showPicker === "function") input.showPicker(); // 크롬/엣지
+    else input.focus(); // fallback
     });
 
   </script>
