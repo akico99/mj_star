@@ -340,6 +340,9 @@
           <div class="totalValue" id="q_totalPrice">₩ 0</div>
           <div class="note" id="q_totalNote">이용일을 선택하면 주중/주말이 자동 적용됩니다.</div>
         </div>
+        <button class="btn" id="btnCoupon10" style="margin-bottom:8px;">
+          장비·의류 10% 쿠폰 적용 OFF
+        </button>
 
         <details open>
           <summary>상세내역</summary>
@@ -739,9 +742,20 @@
             `- 소인 ${p.child.toLocaleString()}원 × ${lift6Child}`
         });
         }
+      const DISCOUNT_TARGETS = ["장비렌탈", "고급의류", "신상의류", "프리미엄의류"];
       const addLine = (label, unit, qty) => {
         if (qty <= 0) return;
-        items.push({ key: label, label, amount: unit * qty, detail: `${unit.toLocaleString()}원 × ${qty}` });
+      
+        let amount = unit * qty;
+        let detail = `${unit.toLocaleString()}원 × ${qty}`;
+      
+        if (coupon10Enabled && DISCOUNT_TARGETS.includes(label)) {
+          const discounted = Math.floor(amount * 0.9);
+          detail += `\n→ 쿠폰 적용가: ${discounted.toLocaleString()}원 (10% 할인)`;
+          amount = discounted;
+        }
+      
+        items.push({ key: label, label, amount, detail });
       };
 
       const equipmentUnit = (shop === "sky" || shop === "national") ? 20000 : C.equipment;
@@ -1064,6 +1078,17 @@
 
     if (typeof input.showPicker === "function") input.showPicker(); // 크롬/엣지
     else input.focus(); // fallback
+    });
+    let coupon10Enabled = false;
+    $("btnCoupon10").addEventListener("click", () => {
+      coupon10Enabled = !coupon10Enabled;
+    
+      $("btnCoupon10").textContent =
+        coupon10Enabled
+          ? "장비·의류 10% 쿠폰 적용 ON"
+          : "장비·의류 10% 쿠폰 적용 OFF";
+    
+      updateQuote();
     });
 
   </script>
