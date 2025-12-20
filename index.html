@@ -926,7 +926,10 @@
             "q_clothHigh","q_clothPremium",
             "q_pad","q_helmet","q_helmetSet"
         ].forEach(id => setCount(id, 0));
-
+      
+        coupon10Enabled = false;
+        $("btnCoupon10").textContent = "장비·의류 10% 쿠폰 적용 OFF";
+      
         $("q_warn").textContent = "";
         syncDayTypePill();
         updateQuote();
