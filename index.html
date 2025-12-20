@@ -684,8 +684,7 @@
       const dayType = dateInfo ? dateInfo.dayType : "weekday"; // 날짜 없으면 임시 주중 기준
       const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
       const S = PRICES.shops[shop];
-      const equipmentUnit =
-        (shop === "sky" || shop === "national") ? 20000 : PRICES.common.equipment;
+      const equipmentUnit = (shop === "sky" || shop === "national") ? 20000 : PRICES.common.equipment;
       const C = PRICES.common;
 
       // 렌탈/옵션
@@ -748,7 +747,7 @@
             `- 소인 ${p.child.toLocaleString()}원 × ${lift6Child}`
         });
         }
-      const DISCOUNT_TARGETS = ["장비렌탈", "고급의류", "신상의류", "프리미엄의류"];
+      const DISCOUNT_TARGETS = ["장비렌탈", "고급의류", "신상의류", "프리미엄의류","스키에이트"];
       const addLine = (label, unit, qty) => {
         if (qty <= 0) return;
 
@@ -764,7 +763,6 @@
         items.push({ key: label, label, amount, original, detail }); // ✅ original 포함
       };
 
-      const equipmentUnit = (shop === "sky" || shop === "national") ? 20000 : C.equipment;
       addLine("장비렌탈", equipmentUnit, equipment);
       addLine("스키에이트", C.skiate, skiate);
       addLine(S.clothTypeLabel, S.clothHigh[dayType], clothHigh);
@@ -837,6 +835,7 @@
     function updateQuote() {
       enforceQuoteRules();
       const t = quoteTotals();
+      const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
 
       $("q_totalPrice").textContent = fmt(t.total);
       $("q_totalPeople").textContent = String(t.totalPeople);
@@ -883,7 +882,6 @@
       }
 
       // 가격표 요약
-      const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
       const S = PRICES.shops[shop];
 
       const dateInfo = getDayTypeFromDate($("q_date").value);
@@ -891,6 +889,7 @@
       const dayLabel = dayType === "weekend" ? "주말" : "주중";
 
       const priceRef = [];
+      const equipmentUnit = (shop === "sky" || shop === "national") ? 20000 : PRICES.common.equipment;
       priceRef.push( `장비 ${equipmentUnit.toLocaleString()} / 스키에이트 ${PRICES.common.skiate.toLocaleString()}` );
       priceRef.push(
       `${S.clothTypeLabel} (${dayLabel}) ${S.clothHigh[dayType].toLocaleString()} / ` +
