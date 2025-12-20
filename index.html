@@ -320,6 +320,24 @@
           </div>
 
           <div style="height:10px"></div>
+
+          <div class="row" id="glovesRow" style="display:none;">
+          <div class="field">
+            <div class="step">
+            <div class="left">
+                <div class="name">장갑 대여</div>
+                <div class="hint">5,000원 / 1인</div>
+            </div>
+            <div class="ctrl">
+                <button class="btn mini" data-step="q_gloves" data-delta="-1">−</button>
+                <div class="count" id="q_gloves">0</div>
+                <button class="btn mini" data-step="q_gloves" data-delta="1">+</button>
+            </div>
+            </div>
+          </div>
+          </div>
+
+          <div style="height:10px"></div>
           <div class="note">옵션은 전부 선택사항이며 0명도 가능합니다. 변경 즉시 총액이 반영됩니다.</div>
         </details>
 
@@ -509,6 +527,7 @@
             pad: 5000,
             helmet: 10000,
             helmetSet: 15000,
+            gloves: 5000,
             lift: {
             weekday: {
                 "3": { adult: 44000, child: 35000 },
@@ -692,6 +711,7 @@
       const skiate = readCount("q_skiate");
       const clothHigh = readCount("q_clothHigh");
       const clothPremium = readCount("q_clothPremium");
+      const gloves = readCount("q_gloves");
       const pad = readCount("q_pad");
       const helmet = readCount("q_helmet");
       const helmetSet = readCount("q_helmetSet");
@@ -770,6 +790,9 @@
       addLine("보호대", C.pad, pad);
       addLine("헬멧 또는 고글", C.helmet, helmet);
       addLine("헬멧+고글", C.helmetSet, helmetSet);
+      if (shop === "choice") {
+        addLine("장갑 대여", C.gloves, gloves);
+      }
 
       const total = items.reduce((s, x) => s + x.amount, 0);
 
@@ -895,7 +918,8 @@
       `${S.clothTypeLabel} (${dayLabel}) ${S.clothHigh[dayType].toLocaleString()} / ` +
       `프리미엄의류 (${dayLabel}) ${S.clothPremium[dayType].toLocaleString()}`
       );
-      priceRef.push(`보호대 5,000 / 헬멧or고글 10,000 / 헬멧+고글 15,000`);
+      priceRef.push(`보호대 5,000 / 장갑 5,000`);
+      priceRef.push(`헬멧or고글 10,000 / 헬멧+고글 15,000`);
       priceRef.push("");
       priceRef.push(`<주중>`);
       priceRef.push(`[3시간권] 대인 44,000 / 소인 35,000`);
@@ -925,7 +949,7 @@
         [
             "q_equipment","q_skiate",
             "q_clothHigh","q_clothPremium",
-            "q_pad","q_helmet","q_helmetSet"
+            "q_pad","q_helmet","q_helmetSet", "q_gloves"
         ].forEach(id => setCount(id, 0));
       
         coupon10Enabled = false;
@@ -1075,15 +1099,33 @@
         const equipmentPrice = (shop === "sky" || shop === "national") ? 20000 : 15000;
         equipmentHint.textContent = `${equipmentPrice.toLocaleString()}원 / 1인`;
     }
+    const gloveField = document.getElementById("gloveField");
+    if (gloveField) {
+    gloveField.style.display = (shop === "choice") ? "" : "none";
+    }
+    }
+    function syncGlovesUI() {
+        const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
+        const row = document.getElementById("glovesRow");
+        if (!row) return;
+
+        if (shop === "choice") {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+            setCount("q_gloves", 0);
+        }
     }
 
     /** ✅ 이벤트는 “함수 밖에서” 단 1번만 등록 */
     document.querySelectorAll('input[name="shop"]').forEach(r => {
     r.addEventListener("change", () => {
         syncClothLabel();
+        syncGlovesUI();   // ← ⭐ 이 줄 추가
         updateQuote();
     });
     });
+
 
     // 📅 버튼 클릭 시 달력 열기
     document.addEventListener("click", (e) => {
@@ -1111,6 +1153,8 @@
     updateReserveOutput();
     syncDayTypePill();
     syncClothLabel();
+    syncClothLabel();
+    syncGlovesUI(); 
   </script>
 </body>
 </html>
