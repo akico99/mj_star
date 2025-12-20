@@ -684,6 +684,8 @@
       const dayType = dateInfo ? dateInfo.dayType : "weekday"; // 날짜 없으면 임시 주중 기준
       const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
       const S = PRICES.shops[shop];
+      const equipmentUnit =
+        (shop === "sky" || shop === "national") ? 20000 : PRICES.common.equipment;
       const C = PRICES.common;
 
       // 렌탈/옵션
@@ -889,7 +891,7 @@
       const dayLabel = dayType === "weekend" ? "주말" : "주중";
 
       const priceRef = [];
-      priceRef.push(`장비 15,000 / 스키에이트 20,000`);
+      priceRef.push( `장비 ${equipmentUnit.toLocaleString()} / 스키에이트 ${PRICES.common.skiate.toLocaleString()}` );
       priceRef.push(
       `${S.clothTypeLabel} (${dayLabel}) ${S.clothHigh[dayType].toLocaleString()} / ` +
       `프리미엄의류 (${dayLabel}) ${S.clothPremium[dayType].toLocaleString()}`
