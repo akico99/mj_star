@@ -854,10 +854,23 @@
         lines.push(`리프트권 인원: ${t.totalPeople}명`);
 
         for (const it of t.items) {
-          lines.push(`${it.label}: ${it.amount.toLocaleString()}원`);
+          if (coupon10Enabled && it.original !== it.amount) {
+            lines.push(
+              `${it.label}: ${it.amount.toLocaleString()}원 (쿠폰 적용)`
+            );
+            lines.push(
+              `- 원가 ${it.original.toLocaleString()}원`
+            );
+          } else {
+            lines.push(
+              `${it.label}: ${it.amount.toLocaleString()}원`
+            );
+          }
+        
           if (it.detail) lines.push(it.detail);
           lines.push("");
         }
+
         lines.push(`총 견적 금액: ${t.total.toLocaleString()}원`);
 
         $("q_breakdown").textContent = lines.join("\n").trim();
