@@ -592,6 +592,7 @@
     function setCount(id, val) {
       $(id).textContent = String(val);
     }
+    let coupon10Enabled = false;
 
     // -------------------------
     // 탭 전환
@@ -707,6 +708,7 @@
             key: "lift3",
             label: `리프트권(3시간 · ${dayType === "weekend" ? "주말" : "주중"})`,
             amount: amt,
+            original: amt,
             detail:
             `- 대인 ${p.adult.toLocaleString()}원 × ${lift3Adult}\n` +
             `- 소인 ${p.child.toLocaleString()}원 × ${lift3Child}`
@@ -722,6 +724,7 @@
             key: "lift4",
             label: `리프트권(4시간 · ${dayType === "weekend" ? "주말" : "주중"})`,
             amount: amt,
+            original: amt,
             detail:
             `- 대인 ${p.adult.toLocaleString()}원 × ${lift4Adult}\n` +
             `- 소인 ${p.child.toLocaleString()}원 × ${lift4Child}`
@@ -737,6 +740,7 @@
             key: "lift6",
             label: `리프트권(6시간 · ${dayType === "weekend" ? "주말" : "주중"})`,
             amount: amt,
+            original: amt,
             detail:
             `- 대인 ${p.adult.toLocaleString()}원 × ${lift6Adult}\n` +
             `- 소인 ${p.child.toLocaleString()}원 × ${lift6Child}`
@@ -745,17 +749,17 @@
       const DISCOUNT_TARGETS = ["장비렌탈", "고급의류", "신상의류", "프리미엄의류"];
       const addLine = (label, unit, qty) => {
         if (qty <= 0) return;
-      
-        let amount = unit * qty;
-        let detail = `${unit.toLocaleString()}원 × ${qty}`;
-      
+
+        const original = unit * qty;     // ✅ 원가 저장
+        let amount = original;
+        let detail = `${unit.toLocaleString()}원 × ${qty} (정가)`;
+
         if (coupon10Enabled && DISCOUNT_TARGETS.includes(label)) {
-          const discounted = Math.floor(amount * 0.9);
-          detail += `\n→ 쿠폰 적용가: ${discounted.toLocaleString()}원 (10% 할인)`;
-          amount = discounted;
+            amount = Math.floor(original * 0.9);
+            detail += `\n→ 쿠폰 적용가: ${amount.toLocaleString()}원 (10% 할인)`;
         }
-      
-        items.push({ key: label, label, amount, detail });
+
+        items.push({ key: label, label, amount, original, detail }); // ✅ original 포함
       };
 
       const equipmentUnit = (shop === "sky" || shop === "national") ? 20000 : C.equipment;
@@ -850,8 +854,8 @@
         lines.push(`[무주스키샵 견적]`);
         if (t.dateInfo) lines.push(`이용일: ${t.dateInfo.iso} (${t.dateInfo.dow} · ${t.dateInfo.label})`);
         else lines.push(`이용일: 미선택(주중 기준 임시 계산)`);
-        lines.push( `리프트 인원: ` + `3시간(대인 ${t.lift3Adult}, 소인 ${t.lift3Child}) / ` + `4시간(대인 ${t.lift4Adult}, 소인 ${t.lift4Child}) / ` + `6시간(대인 ${t.lift6Adult}, 소인 ${t.lift6Child})` );
-        lines.push(`리프트권 인원: ${t.totalPeople}명`);
+        // lines.push( `리프트 인원: ` + `3시간(대인 ${t.lift3Adult}, 소인 ${t.lift3Child}) / ` + `4시간(대인 ${t.lift4Adult}, 소인 ${t.lift4Child}) / ` + `6시간(대인 ${t.lift6Adult}, 소인 ${t.lift6Child})` );
+        // lines.push(`리프트권 인원: ${t.totalPeople}명`);
 
         for (const it of t.items) {
           if (coupon10Enabled && it.original !== it.amount) {
@@ -1039,10 +1043,7 @@
 
     // 초기 렌더
     
-    updateQuote();
-    updateReserveOutput();
-    syncDayTypePill();
-    syncClothLabel();
+
 
     /** 라벨/힌트만 동기화 (이벤트 등록 금지) */
     function syncClothLabel() {
@@ -1092,7 +1093,6 @@
     if (typeof input.showPicker === "function") input.showPicker(); // 크롬/엣지
     else input.focus(); // fallback
     });
-    let coupon10Enabled = false;
     $("btnCoupon10").addEventListener("click", () => {
       coupon10Enabled = !coupon10Enabled;
     
@@ -1103,7 +1103,10 @@
     
       updateQuote();
     });
-
+    updateQuote();
+    updateReserveOutput();
+    syncDayTypePill();
+    syncClothLabel();
   </script>
 </body>
 </html>
