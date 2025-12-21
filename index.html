@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>무주스키샵 견적/예약</title>
   <style>
+    select option {
+        color: #111;          /* 펼쳤을 때 글자는 검정 */
+        background: #fff;     /* 배경 흰색 */
+    }
     :root { --bg:#0b0c10; --card:#12141a; --muted:#9aa3b2; --text:#e8ecf3; --line:#242a36; --accent:#5eead4; --warn:#ffcf66; }
     * { box-sizing: border-box; }
     body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif; background: linear-gradient(180deg, #0b0c10, #0b0c10 40%, #0a1220); color:var(--text); }
@@ -408,7 +412,24 @@
         <div class="row">
           <div class="field">
             <label>방문예정 시간</label>
-            <input type="time" id="r_time" />
+            <select id="r_time">
+                <option value="">시간 선택</option>
+                <option value="08:00">08:00</option>
+                <option value="09:00">09:00</option>
+                <option value="10:00">10:00</option>
+                <option value="11:00">11:00</option>
+                <option value="12:00">12:00</option>
+                <option value="13:00">13:00</option>
+                <option value="14:00">14:00</option>
+                <option value="15:00">15:00</option>
+                <option value="16:00">16:00</option>
+                <option value="17:00">17:00</option>
+                <option value="18:00">18:00</option>
+                <option value="19:00">19:00</option>
+                <option value="20:00">20:00</option>
+                <option value="21:00">21:00</option>
+                <option value="22:00">22:00</option>
+            </select>
           </div>
           <div class="field" style="min-width:200px;">
             <label>시간 미정</label>
@@ -994,14 +1015,24 @@
     });
 
     function enforceReserveRules() {
-      const adult = readCount("r_adult");
-      const child = readCount("r_child");
-      const total = adult + child;
-      $("r_totalPeople").textContent = String(total);
+        const adult = readCount("r_adult");
+        const child = readCount("r_child");
+        const liftPeople = adult + child;
 
-      // 렌탈 인원은 0~총인원
-      setCount("r_rental", clamp(readCount("r_rental"), 0, total));
+        const rental = readCount("r_rental");
+
+        // ✅ 총 인원 = 리프트권 인원 vs 렌탈 인원 중 큰 값
+        const total = Math.max(liftPeople, rental);
+
+        // 기존 UI가 r_totalPeople을 "리프트권 인원"이라고 쓰고 있지만,
+        // 네 요구대로라면 여기엔 "총 인원" 개념이 들어가는 게 맞음
+        $("r_totalPeople").textContent = String(total);
+
+        // ✅ 이제 렌탈 인원은 리프트 인원과 무관하게 조절 가능
+        // (원하면 상한만 99로 제한)
+        setCount("r_rental", clamp(rental, 0, 99));
     }
+
 
     function updateReserveOutput() {
       enforceReserveRules();
@@ -1015,8 +1046,11 @@
 
       const adult = readCount("r_adult");
       const child = readCount("r_child");
-      const total = adult + child;
+      const liftPeople = adult + child;
+
       const rental = readCount("r_rental");
+      const total = Math.max(liftPeople, rental);
+
       const memo = $("r_memo").value.trim() || "-";
 
       const lines = [];
@@ -1028,8 +1062,9 @@
       lines.push(`방문시간: ${time}`);
       lines.push(`리프트권: ${liftLabel}`);
       lines.push("");
-      lines.push(`인원: 대인 ${adult} / 소인 ${child} (총 ${total}명)`);
+      lines.push(`인원: 대인 ${adult} / 소인 ${child}`);
       lines.push(`렌탈 인원: ${rental}`);
+      lines.push(`총 인원: ${total}명`);
       lines.push("");
       lines.push(`메모: ${memo}`);
 
