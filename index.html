@@ -341,12 +341,30 @@
             </div>
           </div>
           </div>
+ 
 
           <div style="height:10px"></div>
           <div class="note">옵션은 전부 선택사항이며 0명도 가능합니다. 변경 즉시 총액이 반영됩니다.</div>
         </details>
         <div style="height:16px"></div>
-        <h2>4) 메모</h2>
+        <h2>4) 강습</h2>
+  
+        <div class="step">
+          <div class="left">
+            <div class="name">강습 팀 수</div>
+            <div class="hint">1팀 = 170,000원 (주중/주말 동일)</div>
+          </div>
+          <div class="ctrl">
+            <button class="btn mini" data-step="q_lessonTeam" data-delta="-1">−</button>
+            <div class="count" id="q_lessonTeam">0</div>
+            <button class="btn mini" data-step="q_lessonTeam" data-delta="1">+</button>
+          </div>
+          <div id="lessonTeamsWrap" style="margin-top:10px;"></div>
+
+        </div>
+
+        <div style="height:16px"></div>
+        <h2>5) 메모</h2>
         <div class="field">
         <textarea id="q_memo" placeholder="예: 픽업 문의 / 사이즈 / 결제 방식 / 요청사항"></textarea>
         </div>
@@ -607,6 +625,12 @@
             }
         }
     };
+    const SHOP_GREETING = {
+        choice: "안녕하세요 초이스스키샵입니다.",
+        sky: "안녕하세요 스카이스키샵입니다.",
+        national: "안녕하세요 국가대표스키샵입니다."
+    };
+
 
     // -------------------------
     // 유틸
@@ -628,6 +652,9 @@
     "2026-02-18"
     // 원하는 날짜 계속 추가
     ]);
+
+
+
     function getDayTypeFromDate(isoDate) {
     if (!isoDate) return null;
 
@@ -659,6 +686,80 @@
     function setCount(id, val) {
       $(id).textContent = String(val);
     }
+    const lessonState = {};
+    function renderLessonTeams() {
+        const wrap = document.getElementById("lessonTeamsWrap");
+        if (!wrap) return;
+
+        const teamCount = readCount("q_lessonTeam");
+
+        // ✅ 현재 DOM에 있는 값들 먼저 저장
+        for (let i = 1; i <= teamCount; i++) {
+            const cntEl = document.getElementById(`q_lesson_${i}_cnt`);
+            const timeEl = document.getElementById(`q_lesson_${i}_time`);
+            const typeEl = document.querySelector(`input[name="q_lesson_${i}_type"]:checked`);
+            if (cntEl) {
+            lessonState[i] = {
+                cnt: Number(cntEl.textContent || 1),
+                time: timeEl?.value || "오전",
+                type: typeEl?.value || "ski",
+            };
+            }
+        }
+
+        wrap.innerHTML = "";
+
+        for (let i = 1; i <= teamCount; i++) {
+            const saved = lessonState[i] || { cnt: 1, time: "오전", type: "ski" };
+
+            const row = document.createElement("div");
+            row.className = "step";
+            row.style.marginTop = "8px";
+
+            row.innerHTML = `
+                <div class="left">
+                    <div class="name">강습 ${i}팀</div>
+                    <div class="hint">인원 / 시간 / 종목 선택</div>
+                </div>
+
+                <div class="ctrl" style="flex-wrap:wrap; gap:8px;">
+                    인원
+                    <button class="btn mini" data-step="q_lesson_${i}_cnt" data-delta="-1">−</button>
+                    <div class="count" id="q_lesson_${i}_cnt">${saved.cnt}</div>
+                    <button class="btn mini" data-step="q_lesson_${i}_cnt" data-delta="1">+</button>
+
+                    <select id="q_lesson_${i}_time" class="btn" style="padding:8px 10px;">
+                        <option value="오전" ${saved.time==="오전"?"selected":""}>오전(09:00)</option>
+                        <option value="오후" ${saved.time==="오후"?"selected":""}>오후(13:00)</option>
+                        <option value="야간" ${saved.time==="야간"?"selected":""}>야간(19:00)</option>
+                    </select>
+
+                    <label style="display:flex; align-items:center; gap:6px; margin-left:6px;">
+                        <input type="radio" name="q_lesson_${i}_type" value="ski" ${saved.type==="ski"?"checked":""}> 스키
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px;">
+                        <input type="radio" name="q_lesson_${i}_type" value="board" ${saved.type==="board"?"checked":""}> 보드
+                    </label>
+                </div>
+            `;
+
+            wrap.appendChild(row);
+        }
+    }
+
+
+    document.addEventListener("change", (e) => {
+        if (
+            e.target.matches('input[name^="q_lesson_"][name$="_type"]') ||
+            e.target.id.startsWith("q_lesson_") && e.target.id.endsWith("_time")
+        ) {
+            updateQuote();
+        }
+    });
+
+
+
+
     couponDiscountRate = Number($("couponSelect").value || 10); // 기본 10% 선택값 유지
     couponApplied = false; // ✅ 초기 OFF
 
@@ -718,7 +819,12 @@
 
       const cur = readCount(id);
       let next = clamp(cur + delta, 0, max);
+      if (id.startsWith("q_lesson_") && id.endsWith("_cnt")) {
+        next = clamp(cur + delta, 1, max);
+      }
       setCount(id, next);
+      if (id === "q_lessonTeam") renderLessonTeams();
+
 
       if (isQuote) {
         enforceQuoteRules();
@@ -868,8 +974,36 @@
       if (shop === "choice") {
         addLine("장갑 대여", C.gloves, gloves);
       }
+    const lessonTeams = readCount("q_lessonTeam");
+    if (lessonTeams > 0) {
+        const lessonPrice = lessonTeams * 170000;
 
-      const total = items.reduce((s, x) => s + x.amount, 0);
+        // 팀별 상세(인원/종목) 문자열 만들기
+        const teamLines = [];
+        for (let i = 1; i <= lessonTeams; i++) {
+            const cnt = readCount(`q_lesson_${i}_cnt`);
+            const type = document.querySelector(`input[name="q_lesson_${i}_type"]:checked`)?.value || "ski";
+            const time = document.getElementById(`q_lesson_${i}_time`)?.value || "오전";
+
+            const typeKr = (type === "ski") ? "스키" : "보드";
+
+            // ✅ 네가 원하는 출력: "1:N 오전스키"
+            teamLines.push(`· ${i}. 1:${cnt} ${time}${typeKr}`);
+        }
+
+        items.push({
+            key: "lesson",
+            label: `강습 (${lessonTeams}팀)`,
+            amount: lessonPrice,
+            original: lessonPrice,
+            detail:
+            `- 170,000원 × ${lessonTeams}\n` +
+            teamLines.join("\n")
+        });
+    }
+
+    // ✅ total은 items 다 넣고 난 뒤에 계산해야 함
+    const total = items.reduce((s, x) => s + x.amount, 0);
 
       return {
         totalPeople,
@@ -950,14 +1084,25 @@
         $("q_breakdown").textContent = "(선택된 항목이 없습니다)";
       } else {
         const lines = [];
-        lines.push(`[무주스키샵 견적]`);
+        const shop = document.querySelector('input[name="shop"]:checked')?.value || "choice";
+        const greeting = SHOP_GREETING[shop] || "";
+
+        if (greeting) {
+        lines.push(greeting);
+        lines.push(""); // 한 줄 띄우기
+        }
+        lines.push("요청해주신 내용 기준으로 아래와 같이 견적 안내드립니다.");
+        lines.push("");
+        lines.push("[견적 안내]");        
+
+        
         if (t.dateInfo) lines.push(`이용일: ${t.dateInfo.iso} (${t.dateInfo.dow} · ${t.dateInfo.label})`);
         else lines.push(`이용일: 미선택(주중 기준 임시 계산)`);
         // lines.push( `리프트 인원: ` + `3시간(대인 ${t.lift3Adult}, 소인 ${t.lift3Child}) / ` + `4시간(대인 ${t.lift4Adult}, 소인 ${t.lift4Child}) / ` + `6시간(대인 ${t.lift6Adult}, 소인 ${t.lift6Child})` );
         // lines.push(`리프트권 인원: ${t.totalPeople}명`);
 
         for (const it of t.items) {
-          if (couponDiscountRate > 0 && it.original !== it.amount) {
+          if (couponApplied && it.original !== it.amount) {
             lines.push(
               `${it.label}: ${it.amount.toLocaleString()}원 (쿠폰 ${couponDiscountRate}% 적용)`
             );
