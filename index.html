@@ -1182,6 +1182,17 @@
             "q_clothHigh","q_clothPremium",
             "q_pad","q_helmet","q_helmetSet", "q_gloves"
         ].forEach(id => setCount(id, 0));
+        setCount("q_lessonTeam", 0);
+
+        // 팀별 상세 영역 비우기
+        const wrap = $("lessonTeamsWrap");
+        if (wrap) wrap.innerHTML = "";
+
+        // lessonState 써서 팀 상태 저장하고 있다면 같이 초기화
+        if (typeof lessonState !== "undefined") {
+            for (const k in lessonState) delete lessonState[k];
+        }    
+  
 
         $("q_memo").value = "";
       
