@@ -763,7 +763,17 @@
     couponDiscountRate = Number($("couponSelect").value || 10); // 기본 10% 선택값 유지
     couponApplied = false; // ✅ 초기 OFF
 
-    $("btnCoupon10").textContent = "장비·의류 쿠폰 적용 OFF"; // ✅ ON 금지
+    function refreshCouponUI() {
+        const btn = $("btnCoupon10");
+
+        if (couponApplied && couponDiscountRate > 0) {
+            btn.textContent = `장비·의류 ${couponDiscountRate}% 쿠폰 적용 ON`;
+        } else {
+            btn.textContent = "장비·의류 쿠폰 적용 OFF";
+        }
+    }
+
+    refreshCouponUI();
     $("couponInput").style.display = "none";
     $("couponInput").value = "";
 
@@ -1182,6 +1192,7 @@
             "q_clothHigh","q_clothPremium",
             "q_pad","q_helmet","q_helmetSet", "q_gloves"
         ].forEach(id => setCount(id, 0));
+
         setCount("q_lessonTeam", 0);
 
         // 팀별 상세 영역 비우기
@@ -1192,14 +1203,17 @@
         if (typeof lessonState !== "undefined") {
             for (const k in lessonState) delete lessonState[k];
         }    
-  
+
 
         $("q_memo").value = "";
       
-        couponDiscountRate = 10; // 기본 10%로 복원
+        // 쿠폰 초기화
+        couponApplied = false;
+        couponDiscountRate = 10;
         $("couponSelect").value = "10";
         $("couponInput").style.display = "none";
-        $("btnCoupon10").textContent = "장비·의류 10% 쿠폰 적용";
+        $("couponInput").value = "";
+        refreshCouponUI();
 
       
         $("q_warn").textContent = "";
@@ -1400,12 +1414,8 @@
     else input.focus(); // fallback
     });
     $("btnCoupon10").addEventListener("click", () => {
-        couponApplied = !couponApplied;
-
-        $("btnCoupon10").textContent = couponApplied
-            ? `장비·의류 ${couponDiscountRate}% 쿠폰 적용 ON`
-            : "장비·의류 쿠폰 적용 OFF";
-
+        couponApplied = !couponApplied; // 상태만 토글
+        refreshCouponUI();               // UI는 여기서만 갱신
         updateQuote();
     });
 
@@ -1419,22 +1429,14 @@
             couponDiscountRate = Number(e.target.value);
         }
 
-        $("btnCoupon10").textContent =
-            couponDiscountRate > 0
-            ? `장비·의류 ${couponDiscountRate}% 쿠폰 적용 ON`
-            : "장비·의류 쿠폰 적용 OFF";
-
+        refreshCouponUI(); // ✅ 버튼 문구는 여기서
         updateQuote();
     });
 
     $("couponInput").addEventListener("input", (e) => {
         couponDiscountRate = Number(e.target.value || 0);
 
-        $("btnCoupon10").textContent =
-            couponDiscountRate > 0
-            ? `장비·의류 ${couponDiscountRate}% 쿠폰 적용 ON`
-            : "장비·의류 쿠폰 적용 OFF";
-
+        refreshCouponUI(); // ✅
         updateQuote();
     });
 
